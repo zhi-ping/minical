@@ -28,11 +28,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ---- Ninja: 构建更快、输出路径统一 (Linux / macOS) ----
+      # ---- Ninja (Linux / macOS) ----
       - uses: seanmiddleditch/gha-setup-ninja@v5
         if: runner.os != 'Windows'
 
-      # ---- macOS: 安装 GCC 14 (<print> 需要) ----
+      # ---- Ubuntu: 确保使用 GCC 14 ----
+      - name: Select GCC 14 (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          echo "CC=gcc-14" >> "$GITHUB_ENV"
+          echo "CXX=g++-14" >> "$GITHUB_ENV"
+
+      # ---- macOS: 安装 GCC 14 (Apple Clang 的 libc++ 不支持 <print>) ----
       - name: Install GCC 14 (macOS)
         if: runner.os == 'macOS'
         run: |
@@ -58,14 +65,14 @@ jobs:
       - name: Build
         run: cmake --build build --config Release
 
-      # ---- 测试 ----
+      # ---- 只跑我们自己的测试, 排除 GoogleTest / Benchmark 自带的 ----
       - name: Test (Linux / macOS)
         if: runner.os != 'Windows'
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build -R cal_test --output-on-failure
 
       - name: Test (Windows)
         if: runner.os == 'Windows'
-        run: ctest --test-dir build -C Release --output-on-failure
+        run: ctest --test-dir build -C Release -R cal_test --output-on-failure
 
       # ---- 上传 ----
       - name: Upload artifact (Linux / macOS)
@@ -83,7 +90,7 @@ jobs:
           path: build\Release\minical.exe
 
   # -------------------------------------------------------------------
-  # 推送 tag (v1.0.0) 时创建 Release
+  # 推送 tag 时创建 Release
   # -------------------------------------------------------------------
   release:
     if: startsWith(github.ref, 'refs/tags/v')
