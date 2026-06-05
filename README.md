@@ -113,14 +113,6 @@ cmake --install build --prefix /usr/local
 - [ ] 彩色输出：ANSI 颜色高亮当天日期
 - [ ] 性能回归测试（Google Benchmark）
 
-## 贡献
-
-本项目为 OOP 课程作业，暂不接受外部贡献。欢迎提交 Issue 报告问题或提出建议。
-
 ## 设计文档
 
 类图、SOLID 原则分析、关键设计决策等见 [DESIGN.md](./DESIGN.md)。
-
-## 许可
-
-仅供课程学习使用。
