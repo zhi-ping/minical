@@ -1,5 +1,7 @@
 # Build output
 build/
+/minical
+/minical.exe
 
 # IDE
 .vscode/
