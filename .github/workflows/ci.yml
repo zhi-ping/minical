@@ -18,8 +18,6 @@ jobs:
             artifact: minical-linux-x86_64
           - os: macos-latest
             artifact: minical-macos-arm64
-          - os: macos-13
-            artifact: minical-macos-x86_64
           - os: windows-latest
             artifact: minical-windows-x86_64
 
