@@ -1,0 +1,114 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            artifact: minical-linux-x86_64
+            c_compiler: gcc
+            cxx_compiler: g++
+          - os: macos-latest
+            artifact: minical-macos-arm64
+            c_compiler: gcc-14
+            cxx_compiler: g++-14
+          - os: macos-13
+            artifact: minical-macos-x86_64
+            c_compiler: gcc-14
+            cxx_compiler: g++-14
+          - os: windows-latest
+            artifact: minical-windows-x86_64
+            c_compiler: cl
+            cxx_compiler: cl
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---- Linux: GCC 14 已内置 ----
+      # ---- macOS: 通过 Homebrew 安装 GCC 14 ----
+      - name: Install GCC 14 (macOS)
+        if: runner.os == 'macOS'
+        run: brew install gcc@14
+
+      # ---- 配置 CMake ----
+      - name: Configure (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.cxx_compiler }}
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.cxx_compiler }}
+
+      # ---- 构建 ----
+      - name: Build
+        run: cmake --build build --config Release
+
+      # ---- 运行测试 ----
+      - name: Test (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: ./build/cal_test
+
+      - name: Test (Windows)
+        if: runner.os == 'Windows'
+        run: .\build\Release\cal_test.exe
+
+      # ---- 上传可执行文件为构建产物 ----
+      - name: Upload artifact (Unix)
+        if: runner.os != 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: build/minical
+
+      - name: Upload artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: build\Release\minical.exe
+
+  # -------------------------------------------------------------------
+  # 仅在推送 tag（如 v1.0.0）时创建 GitHub Release
+  # -------------------------------------------------------------------
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: minical-*
+          merge-multiple: true
+          path: release
+
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum minical-* > checksums.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
