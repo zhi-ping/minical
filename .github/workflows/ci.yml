@@ -16,62 +16,59 @@ jobs:
         include:
           - os: ubuntu-24.04
             artifact: minical-linux-x86_64
-            c_compiler: gcc
-            cxx_compiler: g++
           - os: macos-latest
             artifact: minical-macos-arm64
-            c_compiler: gcc-14
-            cxx_compiler: g++-14
           - os: macos-13
             artifact: minical-macos-x86_64
-            c_compiler: gcc-14
-            cxx_compiler: g++-14
           - os: windows-latest
             artifact: minical-windows-x86_64
-            c_compiler: cl
-            cxx_compiler: cl
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
 
-      # ---- Linux: GCC 14 已内置 ----
-      # ---- macOS: 通过 Homebrew 安装 GCC 14 ----
+      # ---- Ninja: 构建更快、输出路径统一 (Linux / macOS) ----
+      - uses: seanmiddleditch/gha-setup-ninja@v5
+        if: runner.os != 'Windows'
+
+      # ---- macOS: 安装 GCC 14 (<print> 需要) ----
       - name: Install GCC 14 (macOS)
         if: runner.os == 'macOS'
-        run: brew install gcc@14
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install gcc@14
+          echo "CC=gcc-14" >> "$GITHUB_ENV"
+          echo "CXX=g++-14" >> "$GITHUB_ENV"
 
-      # ---- 配置 CMake ----
+      # ---- 配置 ----
       - name: Configure (Linux / macOS)
         if: runner.os != 'Windows'
         run: >
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
-          -DCMAKE_CXX_COMPILER=${{ matrix.cxx_compiler }}
+          cmake -S . -B build
+          -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
 
       - name: Configure (Windows)
         if: runner.os == 'Windows'
         run: >
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
-          -DCMAKE_CXX_COMPILER=${{ matrix.cxx_compiler }}
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Release
 
       # ---- 构建 ----
       - name: Build
         run: cmake --build build --config Release
 
-      # ---- 运行测试 ----
+      # ---- 测试 ----
       - name: Test (Linux / macOS)
         if: runner.os != 'Windows'
-        run: ./build/cal_test
+        run: ctest --test-dir build --output-on-failure
 
       - name: Test (Windows)
         if: runner.os == 'Windows'
-        run: .\build\Release\cal_test.exe
+        run: ctest --test-dir build -C Release --output-on-failure
 
-      # ---- 上传可执行文件为构建产物 ----
-      - name: Upload artifact (Unix)
+      # ---- 上传 ----
+      - name: Upload artifact (Linux / macOS)
         if: runner.os != 'Windows'
         uses: actions/upload-artifact@v4
         with:
@@ -86,7 +83,7 @@ jobs:
           path: build\Release\minical.exe
 
   # -------------------------------------------------------------------
-  # 仅在推送 tag（如 v1.0.0）时创建 GitHub Release
+  # 推送 tag (v1.0.0) 时创建 Release
   # -------------------------------------------------------------------
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -103,9 +100,7 @@ jobs:
           path: release
 
       - name: Generate checksums
-        run: |
-          cd release
-          sha256sum minical-* > checksums.txt
+        run: cd release && sha256sum * > checksums.txt
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
