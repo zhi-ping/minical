@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(cal LANGUAGES CXX)
+project(minical LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -25,8 +25,8 @@ add_library(cal_lib STATIC
 target_include_directories(cal_lib PUBLIC src)
 
 # ---- main executable ----
-add_executable(cal src/main.cpp)
-target_link_libraries(cal PRIVATE cal_lib)
+add_executable(minical src/main.cpp)
+target_link_libraries(minical PRIVATE cal_lib)
 
 # ---- tests ----
 enable_testing()

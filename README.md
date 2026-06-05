@@ -25,13 +25,13 @@ ctest --test-dir build
 ## 使用示例
 
 ```bash
-./build/cal 2025           # 显示 2025 全年，每排 3 个月
-./build/cal -m 5           # 显示今年 5 月
-./build/cal -A 2           # 显示当月及之后 2 个月
-./build/cal -B 2           # 显示当月及之前 2 个月
-./build/cal -r 4 2025      # 显示 2025 全年，每排 4 个月
-./build/cal -d 2025-12     # 显示 2025 年 12 月
-./build/cal -A 3 -B 1      # 显示前 1 个月 + 当前 + 后 3 个月
+./build/minical 2025           # 显示 2025 全年，每排 3 个月
+./build/minical -m 5           # 显示今年 5 月
+./build/minical -A 2           # 显示当月及之后 2 个月
+./build/minical -B 2           # 显示当月及之前 2 个月
+./build/minical -r 4 2025      # 显示 2025 全年，每排 4 个月
+./build/minical -d 2025-12     # 显示 2025 年 12 月
+./build/minical -A 3 -B 1      # 显示前 1 个月 + 当前 + 后 3 个月
 ```
 
 ## 命令行参数
