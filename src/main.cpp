@@ -11,6 +11,30 @@
 #include "option_parser.hpp"
 
 // ---------------------------------------------------------------------------
+// 帮助信息
+// ---------------------------------------------------------------------------
+void print_help(std::string_view prog_name) {
+    std::println("用法: {} [选项] [年份]", prog_name);
+    std::println("");
+    std::println("命令行日历工具，显示文本格式的月历。");
+    std::println("");
+    std::println("选项:");
+    std::println("  -A N         之后 N 个月（不含当前月，N ≥ 0）");
+    std::println("  -B N         之前 N 个月（不含当前月，N ≥ 0）");
+    std::println("  -d yyyy-mm   指定年月（如 2025-06）");
+    std::println("  -m N         指定月份（1–12）");
+    std::println("  -r N         每排显示月数（默认 3）");
+    std::println("  -h, --help   打印本帮助信息");
+    std::println("");
+    std::println("示例:");
+    std::println("  {}             显示当月", prog_name);
+    std::println("  {} 2025        显示 2025 全年", prog_name);
+    std::println("  {} -m 5        显示今年 5 月", prog_name);
+    std::println("  {} -A 2 -B 1   显示前 1 月 + 当月 + 后 2 月", prog_name);
+    std::println("  {} -r 4 2025   显示 2025 全年，每排 4 个月", prog_name);
+}
+
+// ---------------------------------------------------------------------------
 // 构建 flag 表 —— 唯一知道具体有哪些 flag 的地方。
 // 新增一个 flag 只需在这里加一行 register_flag() 调用，代码库其余部分
 // 完全无需修改（开闭原则）。
@@ -30,6 +54,17 @@ FlagTable build_flag_table() {
                 opts.*member_ptr = n;
             });
     };
+
+    // ----- 帮助 flag --------------------------------------------------------
+    auto help_flag = [](std::string name) {
+        return FlagDescriptor(
+            std::move(name), ArgKind::None,
+            [](CalOptions& opts, const std::string& /*val*/) {
+                opts.show_help = true;
+            });
+    };
+    table.register_flag(help_flag("-h"));
+    table.register_flag(help_flag("--help"));
 
     // ----- 命名 flag --------------------------------------------------------
     table.register_flag(int_flag("-A", &CalOptions::after_months));
@@ -93,15 +128,21 @@ int main(int argc, char* argv[]) {
         OptionParser parser;
         CalOptions opts = parser.parse(argc, argv, table);
 
-        // 3. 展开为具体月份列表
+        // 3. -h / --help 时打印帮助信息并退出
+        if (opts.show_help) {
+            print_help(argv[0]);
+            return EXIT_SUCCESS;
+        }
+
+        // 4. 展开为具体月份列表
         auto today = today_ym();
         std::vector<std::pair<int, int>> months = opts.resolve(today);
 
-        // 4. 生成月历
+        // 5. 生成月历
         Calendar cal;
         std::string output = cal.generate(opts, today);
 
-        // 5. 输出
+        // 6. 输出
         std::print("{}", output);
 
         return EXIT_SUCCESS;

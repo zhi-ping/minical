@@ -25,6 +25,9 @@ struct CalOptions {
     /// -r：每横排显示的月数（默认 3）
     int rows_per_line = 3;
 
+    /// -h / --help：打印帮助信息后退出
+    bool show_help = false;
+
     /// 将选项展开为实际需要显示的 (年, 月) 列表。
     ///
     /// @param  today 代表"今天"的 (年, 月)
